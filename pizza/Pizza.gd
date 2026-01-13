@@ -14,7 +14,7 @@ enum CellState {
 
 class Cutter:
 	var node : Node2D
-	var curPos : Vector2
+	var curPos := Vector2.ZERO
 	var isCutting := true
 	
 	func _init() -> void:
@@ -37,7 +37,7 @@ var cellBounds : Rect2
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	var node = ColorRect.new()
-	node.color = Color.PURPLE
+	node.color = Color(0.988, 0.372, 0.569, 0.082)
 	#node.position = $CollisionShape2D.position
 	cellBounds = $CollisionShape2D.shape.get_rect()
 	node.size = cellBounds.size
@@ -45,18 +45,27 @@ func _ready() -> void:
 	self.add_child(node)
 	
 	resolution = Vector2i(96, 96)
-	_cut_line(Vector2i(40, 75), Vector2i(90, 80))
-	_dbg_print()
-	
-	cutters.append(Cutter.new())
+	#_cut_line(Vector2i(40, 75), Vector2i(90, 80))
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	_dbg_show()
-	print($CharacterBody2D.position)
-	_update_cutter(cutters[0], $CharacterBody2D.position / 32.0)
+	#var pos :Vector2i= _to_array(self.to_local($CharacterBody2D.global_position))
+	#print(pos)
+	#cellStates[pos.y * resolution.x + pos.x] = CellState.CUT
+	#_update_cutter(cutters[0], _to_array(self.to_local($CharacterBody2D.global_position)))
+	#print(cutters[0].curPos)
+	
+	for cutter in cutters:
+		_update_cutter(cutter, _to_array(self.to_local(cutter.node.global_position)))
+	if Input.is_action_just_released("ui_cancel"):
+		resolution = resolution
+		#_dbg_print()
 
+
+func _to_array(pos : Vector2) -> Vector2i:
+	return Vector2(resolution) * (pos - cellBounds.position) / cellBounds.size
 
 func _dbg_show():
 	var addNodes := false
@@ -65,8 +74,9 @@ func _dbg_show():
 		for y in resolution.y:
 			for x in resolution.x:
 				var node = ColorRect.new()
-				node.position = Vector2(x, y) * 32
-				node.size = Vector2(28, 28)
+				var nodeSize := cellBounds.size / Vector2(resolution)
+				node.position = Vector2(x, y) * nodeSize + cellBounds.position
+				node.size = nodeSize
 				$DBG.add_child(node)
 	else:
 		var i := 0
@@ -98,20 +108,47 @@ func _update_cutter(cutter : Cutter, newPos : Vector2):
 		_cut_line(cutter.curPos, newPos)
 	cutter.curPos = newPos
 
+func _valid_pos(pos) -> bool:
+	if pos.x >= 0 && pos.y >= 0 && pos.x < resolution.x && pos.y < resolution.y:
+		return true
+	return false
+
 func _cut_line(curPos : Vector2i, newPos : Vector2i):
-	var dx :float= newPos.x - curPos.x
-	var dy :float= newPos.y - curPos.y
-	var m := dy/dx
-	var y := 0
-	for x in range(curPos.x, newPos.x):
-		y = m * (x - newPos.x) + curPos.x
-		cellStates[y * resolution.x + x] = CellState.CUT
+	if !_valid_pos(curPos) || !_valid_pos(newPos):
+		return
+	if curPos == newPos:
+		cellStates[curPos.y * resolution.x + curPos.x] = CellState.CUT
+		return
+	var dir := Vector2(curPos - newPos).normalized()
+	var interPos :Vector2=curPos
+	while true:
+		curPos = round(interPos)
+		if _valid_pos(curPos):
+			cellStates[curPos.y * resolution.x + curPos.x] = CellState.CUT
+		if Vector2(curPos - newPos).length() < 2.0:
+			return
+		interPos = Vector2(curPos) - dir ##With no round does not work wiki line algo maybe works better look below?
+
+	##wiki default line algo
+	#var dx :float= newPos.x - curPos.x
+	#var dy :float= newPos.y - curPos.y
+	#var m := dy/dx
+	#var y := 0
+	#for x in range(curPos.x, newPos.x+1):
+		#y = m * (x - curPos.x) + newPos.x
+		#cellStates[y * resolution.x + x] = CellState.CUT
 
 
 func _on_body_entered(body: Node2D) -> void:
 	if body.name == ACT_BODY_NAME:
-		cutters.append(body)
+		var cutter := Cutter.new()
+		cutter.node = body
+		cutter.curPos = _to_array(self.to_local(body.global_position))
+		cutters.append(cutter)
 
 func _on_body_exited(body: Node2D) -> void:
 	if body.name == ACT_BODY_NAME:
-		cutters.erase(body) ##body should only be in list once!
+		#cutters.erase(body) ##body should only be in list once!
+		for cutter in cutters:
+			if cutter.node == body:
+				cutters.erase(cutter)

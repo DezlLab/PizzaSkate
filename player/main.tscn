@@ -1,8 +1,14 @@
-[gd_scene load_steps=2 format=3 uid="uid://dyk0jantbyadk"]
+[gd_scene load_steps=3 format=3 uid="uid://dyk0jantbyadk"]
 
 [ext_resource type="PackedScene" uid="uid://bhh3b0xqeqbp7" path="res://player/player.tscn" id="1_37jte"]
+[ext_resource type="PackedScene" uid="uid://dgxkk4r2711hd" path="res://pizza/Pizza.tscn" id="2_hf4mc"]
 
 [node name="Node2D" type="Node2D"]
 
-[node name="CharacterBody2D" parent="." instance=ExtResource("1_37jte")]
+[node name="Player" parent="." instance=ExtResource("1_37jte")]
 position = Vector2(532, 304)
+
+[node name="Camera2D" type="Camera2D" parent="Player"]
+
+[node name="Pizza" parent="." instance=ExtResource("2_hf4mc")]
+position = Vector2(1902, 848)

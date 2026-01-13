@@ -11,9 +11,14 @@ config_version=5
 [application]
 
 config/name="PizzaSkate"
-run/main_scene="uid://dgxkk4r2711hd"
+run/main_scene="uid://dyk0jantbyadk"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[display]
+
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"
 
 [rendering]
 
